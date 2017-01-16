@@ -1,0 +1,11 @@
+{
+  "lambda": {
+    "role": "navigator-executor",
+    "name": "navigator",
+    "region": "us-east-1"
+  },
+  "api": {
+    "id": "klqxgp9koi",
+    "module": "bot"
+  }
+}
