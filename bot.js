@@ -19,8 +19,8 @@ var bot = botBuilder(function(message) {
         'bicycling, transit, walking}'
 
   	console.log('match text failed')
-    //return errorMsg;
-    return [errorMsg, 'demo msg', errorMsg];
+    
+    return errorMsg;
   }
 }, { platforms: ['twilio'] });
 
@@ -29,7 +29,7 @@ var lookupDirections = function(data) {
 return googleMapsClient.directions({
   origin: data[0],
   destination: data[1],
-  mode: data[2].toLowerCase()
+  mode: data[2].toLowerCase().trim()
   })
   .asPromise()
 
@@ -68,27 +68,6 @@ var sendResults = function(response) {
   	}
 
   	return stepArr.join(', ')
-
-  	/*
-	respArray = []
-
-	var currentStr = stepArr[0]
-
-	for (i = 1; i < stepArr.length; i++) {
-		if (currentStr.length + stepArr[i].length <= 160) {
-			currentStr += ', ' + stepArr[i]
-		} else {
-			respArray.push(currentStr)
-			currentStr = stepArr[i]
-		}
-	}
-
-	respArray.push(currentStr)
-	console.log('respArray')
-	console.log(respArray)
-
-	return respArray[0]
-	*/
 }
 
 

@@ -72,7 +72,7 @@ var sendResults = function(response) {
 
   }
 
-var mystr = '1762 U St NW DC;1101 Brook Valley Lane, Mclean VA;Driving'
+var mystr = '13th St NW and F St NW DC;Landmark Cinema, E St NW DC;Walking'
 console.log(main(mystr))
 
 
