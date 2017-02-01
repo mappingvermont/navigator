@@ -1,9 +1,10 @@
-
+require('dotenv').load();
+var nominatim = require('./nominatim')
+var Q = require('q')
 var googleMapsClient = require('@google/maps').createClient({
 	Promise: require('q').Promise
   //key: (set using GOOGLE_MAPS_API_KEY environment variable)
 });
-
 
 var main = function(input_sms) {
 
@@ -14,7 +15,12 @@ var main = function(input_sms) {
   var inputArray = parseInput(input_sms)
 
   if (inputArray) {
-  	return lookupDirections(inputArray).then(function(result) {
+	  
+	return geocode(inputArray)
+	.then(function(result) {
+		console.log(result)
+		return lookupDirections(result, inputArray[2])})
+	.then(function(result) {
   		return sendResults(result)
   	})
   } else {
@@ -23,18 +29,31 @@ var main = function(input_sms) {
 
 }
 
-var lookupDirections = function(data) {
-
-return googleMapsClient.directions({
-  origin: data[0],
-  destination: data[1],
-  mode: data[2].toLowerCase()
-  })
-  .asPromise()
-
+var geocode = function(data) {
+	console.log('gecoding')
+	console.log(data)
+	
+	var start = nominatim(data[0])
+	var end = nominatim(data[1])
+	
+	return Q.all([start, end])
 }
+	
+var lookupDirections = function(data, mode) {
+	
+	//console.log('looking up directions')
+	//console.log(data[0].lat, data[0].lon)
+	//console.log(data[1].lat, data[1].lon)
+	//console.log(mode)
 
-
+    return googleMapsClient.directions({
+	  
+      origin: [data[0].lat, data[0].lon],
+      destination: [data[1].lat, data[1].lon],
+      mode: mode.toLowerCase()
+      })
+	  .asPromise()
+}
 
 var parseInput = function(input_sms) {
   var inputArray = input_sms.split(';')
@@ -72,7 +91,10 @@ var sendResults = function(response) {
 
   }
 
-var mystr = '13th St NW and F St NW DC;Landmark Cinema, E St NW DC;Walking'
-console.log(main(mystr))
+var mystr = '1762 U St NW DC;Comet Ping Pong DC;Walking'
+main(mystr)
+
+
+
 
 
