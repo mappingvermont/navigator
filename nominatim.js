@@ -25,21 +25,3 @@ function nominatim(place) {
 
 
 module.exports = nominatim;
-
-/*	
-nominatim('1762 U St NW DC')
-.then(function (results) {
-	console.log(results)
-	console.log('here')
-});
-
-
-var start = nominatim('22 Hubbard St, Montpelier VT')
-var end = nominatim('1762 U St NW DC')
-
-Q.all([start, end])
-.then(function (results) {
-	console.log(results)
-	})
-	
-*/

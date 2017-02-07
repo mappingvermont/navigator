@@ -2,99 +2,116 @@ require('dotenv').load();
 var nominatim = require('./nominatim')
 var Q = require('q')
 var googleMapsClient = require('@google/maps').createClient({
-	Promise: require('q').Promise
-  //key: (set using GOOGLE_MAPS_API_KEY environment variable)
+    Promise: require('q').Promise
 });
 
 var main = function(input_sms) {
 
-  var errorMsg = 'Error! Input should be delimited by semi colons, ' + 
-  	       'and in the form {start};{end};{mode} where mode is one of {driving, ' + 
-  	       'bicycling, transit, walking}'
+    var inputArray = parseInput(input_sms)
 
-  var inputArray = parseInput(input_sms)
+    if (inputArray.error) {
+        return inputArray.error
 
-  if (inputArray) {
-	  
-	return geocode(inputArray)
-	.then(function(result) {
-		console.log(result)
-		return lookupDirections(result, inputArray[2])})
-	.then(function(result) {
-  		return sendResults(result)
-  	})
-  } else {
-  	return errorMsg
-  }
+    } else {
+        return geocode(inputArray)
+            .then(function(result) {
+                return lookupDirections(result, inputArray)
+            })
+            .catch(function(error) {
+                return {
+                    error: error.name + ': ' + error.message
+                }
+            })
+            .then(function(result) {
+                //console.log(result)
+
+                if (result.error) {
+                    //console.log(result.error)
+                    return result.error
+                } else {
+                    return sendResults(result)
+                }
+            })
+    }
 
 }
+
 
 var geocode = function(data) {
-	console.log('gecoding')
-	console.log(data)
-	
-	var start = nominatim(data[0])
-	var end = nominatim(data[1])
-	
-	return Q.all([start, end])
+
+    console.log('gecoding')
+
+    var start = nominatim(data[0])
+    var end = nominatim(data[1])
+
+    return Q.all([start, end])
 }
-	
-var lookupDirections = function(data, mode) {
-	
-	//console.log('looking up directions')
-	//console.log(data[0].lat, data[0].lon)
-	//console.log(data[1].lat, data[1].lon)
-	//console.log(mode)
+
+var lookupDirections = function(data, inputArray) {
+
+    origin = finalAddress(data[0], inputArray[0])
+    destination = finalAddress(data[1], inputArray[1])
 
     return googleMapsClient.directions({
-	  
-      origin: [data[0].lat, data[0].lon],
-      destination: [data[1].lat, data[1].lon],
-      mode: mode.toLowerCase()
-      })
-	  .asPromise()
+
+            origin: origin,
+            destination: destination,
+            mode: inputArray[2].toLowerCase().trim()
+        })
+        .asPromise()
+}
+
+var finalAddress = function(nominatimInput, rawInput) {
+    if (nominatimInput) {
+        return [nominatimInput.lat, nominatimInput.lon]
+    } else {
+        console.log('nominatim failed')
+        return rawInput
+    }
 }
 
 var parseInput = function(input_sms) {
-  var inputArray = input_sms.split(';')
-  console.log(inputArray)
+    var inputArray = input_sms.split(';')
 
-  if (inputArray.length === 3) {
-  	return inputArray
-  } else {
-  	return false
-  }
+    if (inputArray.length != 3) {
+        var msg = 'Error! Input should be delimited by semi colons, ' +
+            'and in the form {start};{end};{mode} where mode is one of {driving, ' +
+            'bicycling, transit, walking}'
 
+        return {
+            error: Error(msg)
+        }
+    } else {
+        return inputArray
+    }
 }
 
 var sendResults = function(response) {
-	//console.log('got results from google maps:')
-	//console.log(response)
+    //console.log('got results from google maps:')
+    //console.log(response)
 
-	stepArr = []
+    if (response.json.status === 'ZERO_RESULTS') {
+        console.log('zero results')
+        return 'No results found, try different search terms'
+    } else {
 
-  	var steps = response.json.routes[0].legs[0].steps
-  	for (i = 0; i < steps.length; i ++) {
-  		var step = steps[i]
-  		var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '');
-  		var distance = step.distance.text
+        stepArr = []
 
-  		var msg = instruction + ' (' + distance + ')';
-  		stepArr.push(msg)
-  		//console.log(msg)
-  		
-  	}
+        var steps = response.json.routes[0].legs[0].steps
+        for (i = 0; i < steps.length; i++) {
+            var step = steps[i]
+            var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '');
+            var distance = step.distance.text
 
-  	console.log(stepArr)
+            var msg = instruction + ' (' + distance + ')';
+            stepArr.push(msg)
+        }
 
-  	return stepArr.join(', ')
+        //console.log(stepArr)
 
-  }
+        return stepArr.join(', ')
+    }
+}
 
-var mystr = '1762 U St NW DC;Comet Ping Pong DC;Walking'
-main(mystr)
-
-
-
-
-
+var mystr = '1762 U St NW DC;Comet;a Walking'
+console.log(main(mystr))
