@@ -23,10 +23,10 @@ var main = function(input_sms) {
                 }
             })
             .then(function(result) {
-                //console.log(result)
+                console.log(result)
 
                 if (result.error) {
-                    //console.log(result.error)
+                    console.log(result.error)
                     return result.error
                 } else {
                     return sendResults(result)
@@ -107,11 +107,11 @@ var sendResults = function(response) {
             stepArr.push(msg)
         }
 
-        //console.log(stepArr)
+        console.log(stepArr)
 
         return stepArr.join(', ')
     }
 }
 
-var mystr = '1762 U St NW DC;Comet;a Walking'
+var mystr = '1762 U St NW DC;Comet DC;Walking'
 console.log(main(mystr))

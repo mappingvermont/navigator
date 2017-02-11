@@ -1,73 +1,116 @@
 var botBuilder = require('claudia-bot-builder');
+var nominatim = require('./nominatim')
+var Q = require('q')
 var googleMapsClient = require('@google/maps').createClient({
     Promise: require('q').Promise
 });
 
-
 var bot = botBuilder(function(message) {
   console.log('starting bot')
 
-  var inputArray = parseInput(message.text)
+    var inputArray = parseInput(message.text)
 
-  if (inputArray) {
-  	return lookupDirections(inputArray).then(function(result) {
-  		return sendResults(result)
-  	})
-  } else {
-  	var errorMsg = 'Error! Input should be delimited by semi colons, ' +
-        'and in the form {start};{end};{mode} where mode is one of {driving, ' +
-        'bicycling, transit, walking}'
+    if (inputArray.error) {
+        return inputArray.error
 
-  	console.log('match text failed')
-    
-    return errorMsg;
-  }
+    } else {
+        return geocode(inputArray)
+            .then(function(result) {
+                return lookupDirections(result, inputArray)
+            })
+            .catch(function(error) {
+                return {
+                    error: error.name + ': ' + error.message
+                }
+            })
+            .then(function(result) {
+                console.log(result)
+
+                if (result.error) {
+                    console.log(result.error)
+                    return result.error
+                } else {
+                    return sendResults(result)
+                }
+            })
+    }
+
 }, { platforms: ['twilio'] });
 
-var lookupDirections = function(data) {
+var geocode = function(data) {
 
-return googleMapsClient.directions({
-  origin: data[0],
-  destination: data[1],
-  mode: data[2].toLowerCase().trim()
-  })
-  .asPromise()
+    console.log('gecoding')
 
+    var start = nominatim(data[0])
+    var end = nominatim(data[1])
+
+    return Q.all([start, end])
 }
 
+var lookupDirections = function(data, inputArray) {
+
+    origin = finalAddress(data[0], inputArray[0])
+    destination = finalAddress(data[1], inputArray[1])
+
+    return googleMapsClient.directions({
+
+            origin: origin,
+            destination: destination,
+            mode: inputArray[2].toLowerCase().trim()
+        })
+        .asPromise()
+}
+
+var finalAddress = function(nominatimInput, rawInput) {
+    if (nominatimInput) {
+        return [nominatimInput.lat, nominatimInput.lon]
+    } else {
+        console.log('nominatim failed')
+        return rawInput
+    }
+}
 
 var parseInput = function(input_sms) {
     var inputArray = input_sms.split(';')
-   	console.log('Input array:')
-    console.log(inputArray)
 
-    if (inputArray.length === 3) {
-        return inputArray
+    if (inputArray.length != 3) {
+        var msg = 'Error! Input should be delimited by semi colons, ' +
+            'and in the form {start};{end};{mode} where mode is one of {driving, ' +
+            'bicycling, transit, walking}'
+
+        return {
+            error: Error(msg)
+        }
     } else {
-        return false
+        return inputArray
     }
-
 }
 
 var sendResults = function(response) {
-	console.log('got results from google maps:')
-	console.log(response)
+    console.log('got results from google maps:')
+    console.log(response)
 
-	stepArr = []
+    if (response.json.status === 'ZERO_RESULTS') {
+        console.log('zero results')
+        return 'No results found, try different search terms'
+    } else {
 
-  	var steps = response.json.routes[0].legs[0].steps
-  	for (i = 0; i < steps.length; i ++) {
-  		var step = steps[i]
-  		var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '');
-  		var distance = step.distance.text
+        stepArr = []
 
-  		var msg = instruction + ' (' + distance + ')';
-  		stepArr.push(msg)
-  		console.log(msg)
-  		
-  	}
+        var steps = response.json.routes[0].legs[0].steps
+        for (i = 0; i < steps.length; i++) {
+            var step = steps[i]
+            var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '');
+            var distance = step.distance.text
 
-  	return stepArr.join(', ')
+            var msg = instruction + ' (' + distance + ')';
+            stepArr.push(msg)
+        }
+
+        console.log(stepArr)
+
+        return stepArr.join(', ')
+    }
 }
 
 
