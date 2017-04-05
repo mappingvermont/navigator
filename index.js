@@ -56,7 +56,7 @@ var lookupDirections = function(data, inputArray) {
 
             origin: origin,
             destination: destination,
-            mode: inputArray[2].toLowerCase().trim()
+            mode: data[2].toLowerCase().trim().replace('biking', 'bicycling')
         })
         .asPromise()
 }
@@ -100,18 +100,18 @@ var sendResults = function(response) {
         var steps = response.json.routes[0].legs[0].steps
         for (i = 0; i < steps.length; i++) {
             var step = steps[i]
-            var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '');
+            var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '').replace(/[^\x00-\x7F]/g, "");
             var distance = step.distance.text
 
             var msg = instruction + ' (' + distance + ')';
             stepArr.push(msg)
         }
 
-        //console.log(stepArr)
+        console.log(stepArr)
 
         return stepArr.join(', ')
     }
 }
 
-var mystr = '1762 U St NW DC;Comet;a Walking'
+var mystr = '1762 U St NW DC;Comet Ping Pong;Walking'
 console.log(main(mystr))

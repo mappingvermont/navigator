@@ -29,7 +29,7 @@ var lookupDirections = function(data) {
 return googleMapsClient.directions({
   origin: data[0],
   destination: data[1],
-  mode: data[2].toLowerCase().trim()
+  mode: data[2].toLowerCase().trim().replace('biking', 'bicycling')
   })
   .asPromise()
 
@@ -38,6 +38,7 @@ return googleMapsClient.directions({
 
 var parseInput = function(input_sms) {
     var inputArray = input_sms.split(';')
+
    	console.log('Input array:')
     console.log(inputArray)
 
@@ -58,7 +59,7 @@ var sendResults = function(response) {
   	var steps = response.json.routes[0].legs[0].steps
   	for (i = 0; i < steps.length; i ++) {
   		var step = steps[i]
-  		var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '');
+  		var instruction = step.html_instructions.replace(/<(?:.|\n)*?>/gm, '').replace(/[^\x00-\x7F]/g, "");
   		var distance = step.distance.text
 
   		var msg = instruction + ' (' + distance + ')';
