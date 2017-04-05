@@ -23,10 +23,10 @@ var main = function(input_sms) {
                 }
             })
             .then(function(result) {
-                //console.log(result)
+                console.log(result)
 
                 if (result.error) {
-                    //console.log(result.error)
+                    console.log(result.error)
                     return result.error
                 } else {
                     return sendResults(result)
@@ -113,5 +113,9 @@ var sendResults = function(response) {
     }
 }
 
+<<<<<<< HEAD
 var mystr = '1762 U St NW DC;Comet Ping Pong;Walking'
+=======
+var mystr = '1762 U St NW DC;Comet DC;Walking'
+>>>>>>> 1e5a9286f36d91f56832eb1a5ddf7bb1ef2f2ed9
 console.log(main(mystr))
